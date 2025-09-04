@@ -1,0 +1,93 @@
+API Introduction
+Users are welcome to make use of this WEEX API developer documentation.
+
+This document serves as the official reference for WEEX API features which are continuously being updated. Check back regularly for updates!
+
+You can switch between the different API operations by clicking on the top menu. The documentation language can be changed via the language button in the upper right corner.
+
+Request parameters and response result examples are provided on the right side of the documentation.
+
+Previous
+Update log
+Market Making/Quantitative Trading
+We welcome institutional partners with proven market-making strategies and substantial trading volumes to join our Market Maker Program.To apply, please provide the following information in an email to us:
+
+support@weex.com (for market maker application)
+
+Your UID (ensure no commission affiliations exist for this UID)
+
+Screenshots as proof of 30-day market-making volume from other exchanges
+
+A brief description of your market-making strategy (no details required)
+
+FAQ
+Q1：How to get API support?
+
+A : Join our official API support group and our admins will answer your questions.https://t.me/weex_group
+
+Q2：Should I use BTCUSDT_SPBL or BTCUSDT for the symbol parameter？
+
+A : The symbol parameter for all order APIs should use the values returned by the /products interface.
+
+Q3：What is the rate limit of API?
+
+A : 1. The rate limit of each API endpoint is marked on the doc page;2. The rate limit of each API interface is calculated independently;
+
+Q4: Are symbols case-sensitive in API endpoints?
+
+A: Yes. Symbols are case-sensitive and must be in all uppercase letters.
+
+If I forget the passphrase of API key, What should I do?
+
+A: The passphrase of API Key can not be modified, please recreate your API Key.
+
+Preparation
+To use the API, please log in to the web platform, create and configure API keys with proper permissions, then proceed with development and trading as detailed in this documentation.
+
+Click here to create an API Key.
+
+Each user can create up to 10 API Key groups. Each key can be configured for "Read" and/or "Trade" permissions.
+
+Permission details:
+
+Read permission: for data queries such as market data.
+Trade permission: enables order placement, cancellation, and related actions.
+After creating an API Key, securely store the following:
+
+APIKey — The unique identifier for API authentication which is algorithmically generated.
+SecretKey — The system-generated private key for signature encryption.
+Passphrase —A user-defined access phrase. Note: If lost, the Passphrase cannot be recovered. You must create a new API key.
+tip
+You can bind IP addresses to API keys when creating API keys. Unrestricted API keys (with no IP address binding) pose security risks.
+
+warning
+Risk warning: These three keys directly impact account security. Never share your Passphrase. Losing any of these keys may result in asset loss. Delete compromised API keys immediately.
+API Types
+This section categorizes APIs into two types:
+
+Public APIs
+Private APIs
+Public APIs
+
+Public APIs allow users to retrieve configuration and market data.These requests do not require authentication.
+
+Private APIs
+
+Private APIs enable order management and account management.Each private request must be authenticated using a standardized signature method.
+
+Private APIs require validation with your API key.
+
+Access Restrictions
+This section outlines access restrictions:
+
+Rest API: Returns the "429 Too Many Requests" status if the frequency limit is exceeded.
+Rest API
+
+Requests with valid API keys are rate-limited by the API key. Requests without API keys are rate-limited by the public IP address.
+
+Rate limiting rules: The default limit is 10 requests/second unless specified otherwise in individual endpoint documentation.
+
+Special note for batch orders: Placing a batch order comprised of 4 trading pairs with 10 orders each counts as 1 request.
+
+Previous
+API Types
