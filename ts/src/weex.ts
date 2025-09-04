@@ -1299,7 +1299,7 @@ export default class weex extends Exchange {
         return { 'url': url, 'method': method, 'body': body, 'headers': headers };
     }
 
-    handleErrors (httpCode: int, reason: Str, url: Str, method: Str, headers: Dict, body: Str, response: Dict, requestHeaders: Dict, requestBody: Str): void {
+handleErrors (httpCode: int, reason: Str, url: Str, method: Str, headers: Dict, body: Str, response: Dict, requestHeaders: Dict, requestBody: Str) {
         if (response === undefined) {
             return; // fallback to default error handler
         }

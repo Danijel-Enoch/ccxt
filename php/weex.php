@@ -1266,7 +1266,7 @@ class weex extends Exchange {
         return array( 'url' => $url, 'method' => $method, 'body' => $body, 'headers' => $headers );
     }
 
-    public function handle_errors(int $httpCode, ?string $reason, ?string $url, ?string $method, array $headers, ?string $body, array $response, array $requestHeaders, ?string $requestBody): void {
+    public function handle_errors(int $httpCode, ?string $reason, ?string $url, ?string $method, array $headers, ?string $body, array $response, array $requestHeaders, ?string $requestBody) {
         if ($response === null) {
             return; // fallback to default error handler
         }

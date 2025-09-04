@@ -1228,7 +1228,7 @@ class weex(Exchange, ImplicitAPI):
             }
         return {'url': url, 'method': method, 'body': body, 'headers': headers}
 
-    def handle_errors(self, httpCode: int, reason: Str, url: Str, method: Str, headers: dict, body: Str, response: dict, requestHeaders: dict, requestBody: Str) -> void:
+    def handle_errors(self, httpCode: int, reason: Str, url: Str, method: Str, headers: dict, body: Str, response: dict, requestHeaders: dict, requestBody: Str):
         if response is None:
             return  # fallback to default error handler
         #
