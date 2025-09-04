@@ -540,7 +540,7 @@ class weex(ccxt.async_support.weex):
             messageHash = 'depth:' + marketId
             client.resolve(self.orderbooks[symbol], messageHash)
 
-    def handle_deltas(self, bookside: Any, deltas: List[Any]) -> void:
+    def handle_deltas(self, bookside: Any, deltas: List[Any]):
         for i in range(0, len(deltas)):
             delta = deltas[i]
             price = self.safe_number(delta, 'price')

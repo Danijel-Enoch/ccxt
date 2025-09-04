@@ -603,7 +603,7 @@ class weex extends \ccxt\async\weex {
         }
     }
 
-    public function handle_deltas(mixed $bookside, array $deltas): void {
+    public function handle_deltas(mixed $bookside, array $deltas) {
         for ($i = 0; $i < count($deltas); $i++) {
             $delta = $deltas[$i];
             $price = $this->safe_number($delta, 'price');

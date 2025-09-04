@@ -598,7 +598,7 @@ export default class weex extends weexRest {
         }
     }
 
-    handleDeltas (bookside: any, deltas: any[]): void {
+    handleDeltas (bookside: any, deltas: any[]) {
         for (let i = 0; i < deltas.length; i++) {
             const delta = deltas[i];
             const price = this.safeNumber (delta, 'price');
