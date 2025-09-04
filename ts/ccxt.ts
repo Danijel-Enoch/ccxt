@@ -143,6 +143,7 @@ import tradeogre from  './src/tradeogre.js'
 import upbit from  './src/upbit.js'
 import vertex from  './src/vertex.js'
 import wavesexchange from  './src/wavesexchange.js'
+import weex from  './src/weex.js'
 import whitebit from  './src/whitebit.js'
 import woo from  './src/woo.js'
 import woofipro from  './src/woofipro.js'
@@ -323,6 +324,7 @@ const exchanges = {
     'upbit':                  upbit,
     'vertex':                 vertex,
     'wavesexchange':          wavesexchange,
+    'weex':                   weex,
     'whitebit':               whitebit,
     'woo':                    woo,
     'woofipro':               woofipro,
@@ -644,6 +646,7 @@ export {
     upbit,
     vertex,
     wavesexchange,
+    weex,
     whitebit,
     woo,
     woofipro,

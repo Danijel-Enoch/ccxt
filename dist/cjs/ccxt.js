@@ -109,6 +109,7 @@ var tradeogre = require('./src/tradeogre.js');
 var upbit = require('./src/upbit.js');
 var vertex = require('./src/vertex.js');
 var wavesexchange = require('./src/wavesexchange.js');
+var weex = require('./src/weex.js');
 var whitebit = require('./src/whitebit.js');
 var woo = require('./src/woo.js');
 var woofipro = require('./src/woofipro.js');
@@ -290,6 +291,7 @@ const exchanges = {
     'upbit': upbit,
     'vertex': vertex,
     'wavesexchange': wavesexchange,
+    'weex': weex,
     'whitebit': whitebit,
     'woo': woo,
     'woofipro': woofipro,
@@ -518,6 +520,7 @@ exports.tradeogre = tradeogre;
 exports.upbit = upbit;
 exports.vertex = vertex;
 exports.wavesexchange = wavesexchange;
+exports.weex = weex;
 exports.whitebit = whitebit;
 exports.woo = woo;
 exports.woofipro = woofipro;

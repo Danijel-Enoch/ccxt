@@ -1,0 +1,25 @@
+from ccxt.base.types import Entry
+
+
+class ImplicitAPI:
+    public_get_public_time = publicGetPublicTime = Entry('public/time', 'public', 'GET', {'cost': 1})
+    public_get_public_currencies = publicGetPublicCurrencies = Entry('public/currencies', 'public', 'GET', {'cost': 1})
+    public_get_public_products = publicGetPublicProducts = Entry('public/products', 'public', 'GET', {'cost': 1})
+    public_get_public_exchangeinfo = publicGetPublicExchangeInfo = Entry('public/exchangeInfo', 'public', 'GET', {'cost': 1})
+    public_get_market_ticker = publicGetMarketTicker = Entry('market/ticker', 'public', 'GET', {'cost': 1})
+    public_get_market_tickers = publicGetMarketTickers = Entry('market/tickers', 'public', 'GET', {'cost': 1})
+    public_get_market_fills = publicGetMarketFills = Entry('market/fills', 'public', 'GET', {'cost': 1})
+    public_get_market_candles = publicGetMarketCandles = Entry('market/candles', 'public', 'GET', {'cost': 1})
+    public_get_market_depth = publicGetMarketDepth = Entry('market/depth', 'public', 'GET', {'cost': 1})
+    private_get_account_assets = privateGetAccountAssets = Entry('account/assets', 'private', 'GET', {'cost': 1})
+    private_get_account_transferrecords = privateGetAccountTransferRecords = Entry('account/transferRecords', 'private', 'GET', {'cost': 1})
+    private_post_account_bills = privatePostAccountBills = Entry('account/bills', 'private', 'POST', {'cost': 1})
+    private_post_trade_orders = privatePostTradeOrders = Entry('trade/orders', 'private', 'POST', {'cost': 1})
+    private_post_trade_batch_orders = privatePostTradeBatchOrders = Entry('trade/batch-orders', 'private', 'POST', {'cost': 1})
+    private_post_trade_cancel_order = privatePostTradeCancelOrder = Entry('trade/cancel-order', 'private', 'POST', {'cost': 1})
+    private_post_trade_cancel_batch_orders = privatePostTradeCancelBatchOrders = Entry('trade/cancel-batch-orders', 'private', 'POST', {'cost': 1})
+    private_post_trade_cancel_symbol_order = privatePostTradeCancelSymbolOrder = Entry('trade/cancel-symbol-order', 'private', 'POST', {'cost': 1})
+    private_post_trade_orderinfo = privatePostTradeOrderInfo = Entry('trade/orderInfo', 'private', 'POST', {'cost': 1})
+    private_post_trade_open_orders = privatePostTradeOpenOrders = Entry('trade/open-orders', 'private', 'POST', {'cost': 1})
+    private_post_trade_history = privatePostTradeHistory = Entry('trade/history', 'private', 'POST', {'cost': 1})
+    private_post_trade_fills = privatePostTradeFills = Entry('trade/fills', 'private', 'POST', {'cost': 1})
