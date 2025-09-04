@@ -214,6 +214,7 @@ import probitPro from './src/pro/probit.js';
 import tradeogrePro from './src/pro/tradeogre.js';
 import upbitPro from './src/pro/upbit.js';
 import vertexPro from './src/pro/vertex.js';
+import weexPro from './src/pro/weex.js';
 import whitebitPro from './src/pro/whitebit.js';
 import wooPro from './src/pro/woo.js';
 import woofiproPro from './src/pro/woofipro.js';
@@ -393,6 +394,7 @@ const pro = {
     'tradeogre': tradeogrePro,
     'upbit': upbitPro,
     'vertex': vertexPro,
+    'weex': weexPro,
     'whitebit': whitebitPro,
     'woo': wooPro,
     'woofipro': woofiproPro,

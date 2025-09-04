@@ -1,0 +1,35 @@
+import weexRest from '../weex.js';
+import type { Int, Str, OrderBook, Order, Trade, Ticker, OHLCV, Balances } from '../base/types.js';
+import Client from '../base/ws/Client.js';
+export default class weex extends weexRest {
+    describe(): any;
+    watchTicker(symbol: string, params?: {}): Promise<Ticker>;
+    watchOHLCV(symbol: string, timeframe?: string, since?: Int, limit?: Int, params?: {}): Promise<OHLCV[]>;
+    timeframeToWeexInterval(timeframe: string): string;
+    watchTrades(symbol: string, since?: Int, limit?: Int, params?: {}): Promise<Trade[]>;
+    watchOrderBook(symbol: string, limit?: Int, params?: {}): Promise<OrderBook>;
+    watchMyTrades(symbol?: Str, since?: Int, limit?: Int, params?: {}): Promise<Trade[]>;
+    watchOrders(symbol?: Str, since?: Int, limit?: Int, params?: {}): Promise<Order[]>;
+    watchBalance(params?: {}): Promise<Balances>;
+    authenticate(params?: {}): Promise<any>;
+    handleMessage(client: Client, message: any): any;
+    handlePing(client: Client, message: any): any;
+    handlePong(client: Client, message: any): any;
+    ping(client: Client): any;
+    handleSubscriptionStatus(client: Client, message: any): any;
+    handlePayload(client: Client, message: any): any;
+    handleTradeEvent(client: Client, message: any): any;
+    handleTicker(client: Client, message: any): any;
+    handleOHLCV(client: Client, message: any): any;
+    weexIntervalToTimeframe(interval: string): string;
+    parseWsOHLCV(ohlcv: any, market?: any): OHLCV;
+    handleTrades(client: Client, message: any): any;
+    parseWsTrade(trade: any, market?: any): Trade;
+    handleOrderBook(client: Client, message: any): any;
+    handleDeltas(bookside: any, deltas: any[]): void;
+    handleMyTrades(client: Client, message: any): any;
+    parseWsMyTrade(trade: any): Trade;
+    handleOrders(client: Client, message: any): any;
+    parseWsOrder(order: any): Order;
+    handleBalance(client: Client, message: any): any;
+}

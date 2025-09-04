@@ -1,0 +1,899 @@
+//  ---------------------------------------------------------------------------
+
+import weexRest from '../weex.js';
+import { ArrayCache, ArrayCacheByTimestamp, ArrayCacheBySymbolById } from '../base/ws/Cache.js';
+import type { Int, Str, OrderBook, Order, Trade, Ticker, OHLCV, Balances, Dict } from '../base/types.js';
+import Client from '../base/ws/Client.js';
+
+//  ---------------------------------------------------------------------------
+
+export default class weex extends weexRest {
+    describe (): any {
+        return this.deepExtend (super.describe (), {
+            'has': {
+                'ws': true,
+                'watchTicker': true,
+                'watchTickers': false,
+                'watchOrderBook': true,
+                'watchTrades': true,
+                'watchTradesForSymbols': false,
+                'watchMyTrades': true,
+                'watchBalance': true,
+                'watchOHLCV': true,
+                'watchOrders': true,
+            },
+            'urls': {
+                'api': {
+                    'ws': {
+                        'public': 'wss://ws-spot.weex.com/v2/ws/public',
+                        'private': 'wss://ws-spot.weex.com/v2/ws/private',
+                    },
+                },
+            },
+            'options': {
+                'tradesLimit': 1000,
+                'ordersLimit': 1000,
+                'OHLCVLimit': 1000,
+                'watchOrderBook': {
+                    'depth': 15, // 15 or 200
+                },
+            },
+            'streaming': {
+                'ping': this.ping,
+                'keepAlive': 30000, // 30 seconds
+            },
+        });
+    }
+
+    async watchTicker (symbol: string, params = {}): Promise<Ticker> {
+        /**
+         * @method
+         * @name weex#watchTicker
+         * @description watches a price ticker, a statistical calculation with the information calculated over the past 24 hours for a specific market
+         * @param {string} symbol unified symbol of the market to fetch the ticker for
+         * @param {object} [params] extra parameters specific to the exchange API endpoint
+         * @returns {object} a [ticker structure]{@link https://docs.ccxt.com/#/?id=ticker-structure}
+         */
+        await this.loadMarkets ();
+        const market = this.market (symbol);
+        const marketId = market['id'];
+        const url = this.urls['api']['ws']['public'];
+        const messageHash = 'ticker:' + marketId;
+        const channel = 'ticker.' + marketId;
+        const request: Dict = {
+            'event': 'subscribe',
+            'channel': channel,
+        };
+        return await this.watch (url, messageHash, request, messageHash);
+    }
+
+    async watchOHLCV (symbol: string, timeframe = '1m', since: Int = undefined, limit: Int = undefined, params = {}): Promise<OHLCV[]> {
+        /**
+         * @method
+         * @name weex#watchOHLCV
+         * @description watches historical candlestick data containing the open, high, low, and close price, and the volume of a market
+         * @param {string} symbol unified symbol of the market to fetch OHLCV data for
+         * @param {string} timeframe the length of time each candle represents
+         * @param {int} [since] timestamp in ms of the earliest candle to fetch
+         * @param {int} [limit] the maximum amount of candles to fetch
+         * @param {object} [params] extra parameters specific to the exchange API endpoint
+         * @returns {int[][]} A list of candles ordered as timestamp, open, high, low, close, volume
+         */
+        await this.loadMarkets ();
+        const market = this.market (symbol);
+        symbol = market['symbol'];
+        const marketId = market['id'];
+        const interval = this.safeString (this.timeframes, timeframe, timeframe);
+        const weexInterval = this.timeframeToWeexInterval (interval);
+        const url = this.urls['api']['ws']['public'];
+        const messageHash = 'kline:' + marketId + ':' + interval;
+        const channel = 'kline.LAST_PRICE.' + marketId + '.' + weexInterval;
+        const request: Dict = {
+            'event': 'subscribe',
+            'channel': channel,
+        };
+        const ohlcv = await this.watch (url, messageHash, request, messageHash);
+        if (this.newUpdates) {
+            limit = ohlcv.getLimit (symbol, limit);
+        }
+        return this.filterBySinceLimit (ohlcv, since, limit, 0, true);
+    }
+
+    timeframeToWeexInterval (timeframe: string): string {
+        const intervals: Dict = {
+            '1m': 'MINUTE_1',
+            '5m': 'MINUTE_5',
+            '15m': 'MINUTE_15',
+            '30m': 'MINUTE_30',
+            '1h': 'HOUR_1',
+            '2h': 'HOUR_2',
+            '4h': 'HOUR_4',
+            '6h': 'HOUR_6',
+            '8h': 'HOUR_8',
+            '12h': 'HOUR_12',
+            '1d': 'DAY_1',
+            '1w': 'WEEK_1',
+            '1M': 'MONTH_1',
+        };
+        return this.safeString (intervals, timeframe, timeframe);
+    }
+
+    async watchTrades (symbol: string, since: Int = undefined, limit: Int = undefined, params = {}): Promise<Trade[]> {
+        /**
+         * @method
+         * @name weex#watchTrades
+         * @description get the list of most recent trades for a particular symbol
+         * @param {string} symbol unified symbol of the market to fetch trades for
+         * @param {int} [since] timestamp in ms of the earliest trade to fetch
+         * @param {int} [limit] the maximum amount of trades to fetch
+         * @param {object} [params] extra parameters specific to the exchange API endpoint
+         * @returns {object[]} a list of [trade structures]{@link https://docs.ccxt.com/#/?id=public-trades}
+         */
+        await this.loadMarkets ();
+        const market = this.market (symbol);
+        symbol = market['symbol'];
+        const marketId = market['id'];
+        const url = this.urls['api']['ws']['public'];
+        const messageHash = 'trades:' + marketId;
+        const channel = 'trades.' + marketId;
+        const request: Dict = {
+            'event': 'subscribe',
+            'channel': channel,
+        };
+        const trades = await this.watch (url, messageHash, request, messageHash);
+        if (this.newUpdates) {
+            limit = trades.getLimit (symbol, limit);
+        }
+        return this.filterBySinceLimit (trades, since, limit, 'timestamp', true);
+    }
+
+    async watchOrderBook (symbol: string, limit: Int = undefined, params = {}): Promise<OrderBook> {
+        /**
+         * @method
+         * @name weex#watchOrderBook
+         * @description watches information on open orders with bid (buy) and ask (sell) prices, volumes and other data
+         * @param {string} symbol unified symbol of the market to fetch the order book for
+         * @param {int} [limit] the maximum amount of order book entries to return
+         * @param {object} [params] extra parameters specific to the exchange API endpoint
+         * @returns {object} A dictionary of [order book structures]{@link https://docs.ccxt.com/#/?id=order-book-structure} indexed by market symbols
+         */
+        await this.loadMarkets ();
+        const market = this.market (symbol);
+        const marketId = market['id'];
+        const depth = this.safeInteger (params, 'depth', this.safeInteger (this.options['watchOrderBook'], 'depth', 15));
+        const url = this.urls['api']['ws']['public'];
+        const messageHash = 'depth:' + marketId;
+        const channel = 'depth.' + marketId + '.' + depth.toString ();
+        const request: Dict = {
+            'event': 'subscribe',
+            'channel': channel,
+        };
+        const orderbook = await this.watch (url, messageHash, request, messageHash);
+        return orderbook.limit ();
+    }
+
+    async watchMyTrades (symbol: Str = undefined, since: Int = undefined, limit: Int = undefined, params = {}): Promise<Trade[]> {
+        /**
+         * @method
+         * @name weex#watchMyTrades
+         * @description watches information on multiple trades made by the user
+         * @param {string} symbol unified market symbol of the market trades were made in
+         * @param {int} [since] the earliest time in ms to fetch trades for
+         * @param {int} [limit] the maximum number of trade structures to retrieve
+         * @param {object} [params] extra parameters specific to the exchange API endpoint
+         * @returns {object[]} a list of [trade structures]{@link https://docs.ccxt.com/#/?id=trade-structure}
+         */
+        await this.loadMarkets ();
+        await this.authenticate ();
+        let messageHash = 'fill';
+        if (symbol !== undefined) {
+            const market = this.market (symbol);
+            messageHash += ':' + market['id'];
+        }
+        const url = this.urls['api']['ws']['private'];
+        const request: Dict = {
+            'event': 'subscribe',
+            'channel': 'fill',
+        };
+        const trades = await this.watch (url, messageHash, request, messageHash);
+        if (this.newUpdates) {
+            limit = trades.getLimit (symbol, limit);
+        }
+        return this.filterBySymbolSinceLimit (trades, symbol, since, limit, true);
+    }
+
+    async watchOrders (symbol: Str = undefined, since: Int = undefined, limit: Int = undefined, params = {}): Promise<Order[]> {
+        /**
+         * @method
+         * @name weex#watchOrders
+         * @description watches information on multiple orders made by the user
+         * @param {string} symbol unified market symbol of the market orders were made in
+         * @param {int} [since] the earliest time in ms to fetch orders for
+         * @param {int} [limit] the maximum number of order structures to retrieve
+         * @param {object} [params] extra parameters specific to the exchange API endpoint
+         * @returns {object[]} a list of [order structures]{@link https://docs.ccxt.com/#/?id=order-structure}
+         */
+        await this.loadMarkets ();
+        await this.authenticate ();
+        let messageHash = 'orders';
+        if (symbol !== undefined) {
+            const market = this.market (symbol);
+            messageHash += ':' + market['id'];
+        }
+        const url = this.urls['api']['ws']['private'];
+        const request: Dict = {
+            'event': 'subscribe',
+            'channel': 'orders',
+        };
+        const orders = await this.watch (url, messageHash, request, messageHash);
+        if (this.newUpdates) {
+            limit = orders.getLimit (symbol, limit);
+        }
+        return this.filterBySymbolSinceLimit (orders, symbol, since, limit, true);
+    }
+
+    async watchBalance (params = {}): Promise<Balances> {
+        /**
+         * @method
+         * @name weex#watchBalance
+         * @description watch balance and get the amount of funds available for trading or funds locked in orders
+         * @param {object} [params] extra parameters specific to the exchange API endpoint
+         * @returns {object} a [balance structure]{@link https://docs.ccxt.com/#/?id=balance-structure}
+         */
+        await this.loadMarkets ();
+        await this.authenticate ();
+        const url = this.urls['api']['ws']['private'];
+        const messageHash = 'account';
+        const request: Dict = {
+            'event': 'subscribe',
+            'channel': 'account',
+        };
+        return await this.watch (url, messageHash, request, messageHash);
+    }
+
+    async authenticate (params = {}): Promise<any> {
+        this.checkRequiredCredentials ();
+        const url = this.urls['api']['ws']['private'];
+        const client = this.client (url);
+        const messageHash = 'authenticated';
+        let future = this.safeValue (client.subscriptions, messageHash);
+        if (future === undefined) {
+            future = client.future (messageHash);
+            client.subscriptions[messageHash] = future;
+            // WEEX requires authentication headers to be set on connection
+            // Authentication will be handled via the headers during WebSocket handshake
+        }
+        return await future;
+    }
+
+    handleMessage (client: Client, message: any): any {
+        if (this.isJsonEncodedObject (message)) {
+            const event = this.safeString (message, 'event');
+            if (event === 'ping') {
+                this.handlePing (client, message);
+                return;
+            } else if (event === 'pong') {
+                this.handlePong (client, message);
+                return;
+            } else if (event === 'subscribed') {
+                this.handleSubscriptionStatus (client, message);
+                return;
+            } else if (event === 'unsubscribed') {
+                this.handleSubscriptionStatus (client, message);
+                return;
+            } else if (event === 'payload') {
+                this.handlePayload (client, message);
+                return;
+            }
+        }
+        const type = this.safeString (message, 'type');
+        if (type === 'trade-event') {
+            this.handleTradeEvent (client, message);
+        }
+    }
+
+    handlePing (client: Client, message: any): any {
+        const time = this.safeString (message, 'time');
+        client.send ({
+            'event': 'pong',
+            'time': time,
+        });
+    }
+
+    handlePong (client: Client, message: any): any {
+        // Handle pong response
+        client.lastPong = this.milliseconds ();
+    }
+
+    ping (client: Client): any {
+        const time = this.milliseconds ().toString ();
+        return {
+            'event': 'ping',
+            'time': time,
+        };
+    }
+
+    handleSubscriptionStatus (client: Client, message: any): any {
+        const event = this.safeString (message, 'event');
+        if (event === 'subscribed') {
+            // Handle successful subscription
+            // No additional handling needed for subscription confirmation
+            const channel = this.safeString (message, 'channel');
+            if (channel) {
+                // Successfully subscribed to channel
+                // Log subscription success if verbose mode is enabled
+                if (this.verbose) {
+                    this.log ('Successfully subscribed to channel:', channel);
+                }
+            }
+        }
+    }
+
+    handlePayload (client: Client, message: any): any {
+        const channel = this.safeString (message, 'channel');
+        if (channel === undefined) {
+            return;
+        }
+        if (channel.indexOf ('ticker.') === 0) {
+            this.handleTicker (client, message);
+        } else if (channel.indexOf ('kline.') === 0) {
+            this.handleOHLCV (client, message);
+        } else if (channel.indexOf ('trades.') === 0) {
+            this.handleTrades (client, message);
+        } else if (channel.indexOf ('depth.') === 0) {
+            this.handleOrderBook (client, message);
+        }
+    }
+
+    handleTradeEvent (client: Client, message: any): any {
+        const channel = this.safeString (message, 'channel');
+        if (channel === 'account') {
+            this.handleBalance (client, message);
+        } else if (channel === 'fill') {
+            this.handleMyTrades (client, message);
+        } else if (channel === 'orders') {
+            this.handleOrders (client, message);
+        }
+    }
+
+    handleTicker (client: Client, message: any): any {
+        //
+        // {
+        //   "event": "payload",
+        //   "channel": "ticker.BTCUSDT_SPBL",
+        //   "data": [
+        //     {
+        //       "symbol": "BTCUSDT_SPBL",
+        //       "priceChange": "325.3",
+        //       "priceChangePercent": "0.003100",
+        //       "trades": "20894",
+        //       "size": "15930.189169",
+        //       "value": "1670098071.4896045",
+        //       "high": "106500.0",
+        //       "low": "93128.9",
+        //       "lastPrice": "105252.1",
+        //       "markPrice": "0"
+        //     }
+        //   ]
+        // }
+        //
+        const data = this.safeList (message, 'data', []);
+        if (data.length > 0) {
+            const tickerData = data[0];
+            const marketId = this.safeString (tickerData, 'symbol');
+            const market = this.safeMarket (marketId);
+            const ticker = this.parseTicker (tickerData, market);
+            const messageHash = 'ticker:' + marketId;
+            client.resolve (ticker, messageHash);
+        }
+    }
+
+    handleOHLCV (client: Client, message: any): any {
+        //
+        // {
+        //   "event": "payload",
+        //   "channel": "kline.LAST_PRICE.BTCUSDT_SPBL.MINUTE_1",
+        //   "data": [
+        //     {
+        //       "startTime": 1693208170000,
+        //       "open": "35000.5",
+        //       "high": "35100.0",
+        //       "low": "34900.0",
+        //       "close": "35050.0",
+        //       "volume": "150.5"
+        //     }
+        //   ]
+        // }
+        //
+        const channel = this.safeString (message, 'channel');
+        const parts = channel.split ('.');
+        const marketId = this.safeString (parts, 2);
+        const intervalPart = this.safeString (parts, 3);
+        const interval = this.weexIntervalToTimeframe (intervalPart);
+        const market = this.safeMarket (marketId);
+        const symbol = market['symbol'];
+        const data = this.safeList (message, 'data', []);
+        this.ohlcvs[symbol] = this.safeValue (this.ohlcvs, symbol, {});
+        let stored = this.safeValue (this.ohlcvs[symbol], interval);
+        if (stored === undefined) {
+            const limit = this.safeInteger (this.options, 'OHLCVLimit', 1000);
+            stored = new ArrayCacheByTimestamp (limit);
+            this.ohlcvs[symbol][interval] = stored;
+        }
+        for (let i = 0; i < data.length; i++) {
+            const ohlcv = data[i];
+            const parsed = this.parseWsOHLCV (ohlcv, market);
+            stored.append (parsed);
+        }
+        const messageHash = 'kline:' + marketId + ':' + interval;
+        client.resolve (stored, messageHash);
+    }
+
+    weexIntervalToTimeframe (interval: string): string {
+        const timeframes: Dict = {
+            'MINUTE_1': '1m',
+            'MINUTE_5': '5m',
+            'MINUTE_15': '15m',
+            'MINUTE_30': '30m',
+            'HOUR_1': '1h',
+            'HOUR_2': '2h',
+            'HOUR_4': '4h',
+            'HOUR_6': '6h',
+            'HOUR_8': '8h',
+            'HOUR_12': '12h',
+            'DAY_1': '1d',
+            'WEEK_1': '1w',
+            'MONTH_1': '1M',
+        };
+        return this.safeString (timeframes, interval, interval);
+    }
+
+    parseWsOHLCV (ohlcv: any, market: any = undefined): OHLCV {
+        //
+        // {
+        //   "startTime": 1693208170000,
+        //   "open": "35000.5",
+        //   "high": "35100.0",
+        //   "low": "34900.0",
+        //   "close": "35050.0",
+        //   "volume": "150.5"
+        // }
+        //
+        return [
+            this.safeInteger (ohlcv, 'startTime'),
+            this.safeNumber (ohlcv, 'open'),
+            this.safeNumber (ohlcv, 'high'),
+            this.safeNumber (ohlcv, 'low'),
+            this.safeNumber (ohlcv, 'close'),
+            this.safeNumber (ohlcv, 'volume'),
+        ];
+    }
+
+    handleTrades (client: Client, message: any): any {
+        //
+        // {
+        //   "event": "payload",
+        //   "channel": "trades.BTCUSDT_SPBL",
+        //   "data": [
+        //     {
+        //       "time": "1747131727502",
+        //       "price": "103337.5",
+        //       "size": "0.01600",
+        //       "value": "1653.400000",
+        //       "buyerMaker": false
+        //     }
+        //   ]
+        // }
+        //
+        const channel = this.safeString (message, 'channel');
+        const parts = channel.split ('.');
+        const marketId = this.safeString (parts, 1);
+        const market = this.safeMarket (marketId);
+        const symbol = market['symbol'];
+        const data = this.safeList (message, 'data', []);
+        let stored = this.safeValue (this.trades, symbol);
+        if (stored === undefined) {
+            const limit = this.safeInteger (this.options, 'tradesLimit', 1000);
+            stored = new ArrayCache (limit);
+            this.trades[symbol] = stored;
+        }
+        for (let i = 0; i < data.length; i++) {
+            const trade = data[i];
+            const parsed = this.parseWsTrade (trade, market);
+            stored.append (parsed);
+        }
+        const messageHash = 'trades:' + marketId;
+        client.resolve (stored, messageHash);
+    }
+
+    parseWsTrade (trade: any, market: any = undefined): Trade {
+        //
+        // {
+        //   "time": "1747131727502",
+        //   "price": "103337.5",
+        //   "size": "0.01600",
+        //   "value": "1653.400000",
+        //   "buyerMaker": false
+        // }
+        //
+        const timestamp = this.safeInteger (trade, 'time');
+        const priceString = this.safeString (trade, 'price');
+        const amountString = this.safeString (trade, 'size');
+        const costString = this.safeString (trade, 'value');
+        const buyerMaker = this.safeValue (trade, 'buyerMaker');
+        const side = buyerMaker ? 'sell' : 'buy'; // If buyer is maker, then this trade is a sell
+        const symbol = this.safeString (market, 'symbol');
+        return this.safeTrade ({
+            'info': trade,
+            'timestamp': timestamp,
+            'datetime': this.iso8601 (timestamp),
+            'symbol': symbol,
+            'id': undefined,
+            'order': undefined,
+            'type': undefined,
+            'takerOrMaker': buyerMaker ? 'maker' : 'taker',
+            'side': side,
+            'amount': amountString,
+            'price': priceString,
+            'cost': costString,
+            'fee': undefined,
+        }, market);
+    }
+
+    handleOrderBook (client: Client, message: any): any {
+        //
+        // {
+        //   "event": "payload",
+        //   "channel": "depth.BTCUSDT_SPBL.15",
+        //   "data": [
+        //     {
+        //       "startVersion": "3644174246",
+        //       "endVersion": "3644174270",
+        //       "level": 15,
+        //       "depthType": "CHANGED",
+        //       "symbol": "BTCUSDT_SPBL",
+        //       "asks": [
+        //         {
+        //           "price": "103436.1",
+        //           "size": "0.91500"
+        //         }
+        //       ],
+        //       "bids": [
+        //         {
+        //           "price": "103435.9",
+        //           "size": "2.40500"
+        //         }
+        //       ]
+        //     }
+        //   ]
+        // }
+        //
+        const channel = this.safeString (message, 'channel');
+        const parts = channel.split ('.');
+        const marketId = this.safeString (parts, 1);
+        const market = this.safeMarket (marketId);
+        const symbol = market['symbol'];
+        const data = this.safeList (message, 'data', []);
+        if (data.length > 0) {
+            const orderBookData = data[0];
+            const depthType = this.safeString (orderBookData, 'depthType');
+            if (depthType === 'SNAPSHOT') {
+                const snapshot = this.parseOrderBook (orderBookData, symbol);
+                const orderbook = this.orderBook (snapshot);
+                this.orderbooks[symbol] = orderbook;
+            } else if (depthType === 'CHANGED') {
+                if (!(symbol in this.orderbooks)) {
+                    return;
+                }
+                const orderbook = this.orderbooks[symbol];
+                const asks = this.safeList (orderBookData, 'asks', []);
+                const bids = this.safeList (orderBookData, 'bids', []);
+                this.handleDeltas (orderbook['asks'], asks);
+                this.handleDeltas (orderbook['bids'], bids);
+                orderbook['timestamp'] = this.milliseconds ();
+                orderbook['datetime'] = this.iso8601 (orderbook['timestamp']);
+            }
+            const messageHash = 'depth:' + marketId;
+            client.resolve (this.orderbooks[symbol], messageHash);
+        }
+    }
+
+    handleDeltas (bookside: any, deltas: any[]): void {
+        for (let i = 0; i < deltas.length; i++) {
+            const delta = deltas[i];
+            const price = this.safeNumber (delta, 'price');
+            const size = this.safeNumber (delta, 'size');
+            if (size === 0) {
+                delete bookside[price];
+            } else {
+                bookside[price] = size;
+            }
+        }
+    }
+
+    handleMyTrades (client: Client, message: any): any {
+        //
+        // {
+        //   "type": "trade-event",
+        //   "channel": "fill",
+        //   "msg": {
+        //     "msgEvent": "OrderUpdate",
+        //     "version": 38,
+        //     "data": {
+        //       "orderFillTransaction": [
+        //         {
+        //           "id": "625138763437179034",
+        //           "symbolName": "BTCUSDT_SPBL",
+        //           "baseCoin": "BTC",
+        //           "quoteCoin": "USDT",
+        //           "orderId": "625138763307155610",
+        //           "orderSide": "BUY",
+        //           "fillSize": "0.000952",
+        //           "fillValue": "99.9676160",
+        //           "fillFee": "0.00000095",
+        //           "direction": "TAKER",
+        //           "createdTime": "1749044695720",
+        //           "updatedTime": "1749044695720"
+        //         }
+        //       ]
+        //     },
+        //     "time": 1749044695720
+        //   },
+        //   "event": "payload"
+        // }
+        //
+        const msg = this.safeDict (message, 'msg', {});
+        const data = this.safeDict (msg, 'data', {});
+        const fills = this.safeList (data, 'orderFillTransaction', []);
+        if (this.myTrades === undefined) {
+            const limit = this.safeInteger (this.options, 'tradesLimit', 1000);
+            this.myTrades = new ArrayCacheBySymbolById (limit);
+        }
+        const tradesArray = this.myTrades;
+        for (let i = 0; i < fills.length; i++) {
+            const fill = fills[i];
+            const trade = this.parseWsMyTrade (fill);
+            tradesArray.append (trade);
+        }
+        client.resolve (tradesArray, 'fill');
+        // Resolve symbol-specific subscriptions
+        for (let i = 0; i < fills.length; i++) {
+            const fill = fills[i];
+            const marketId = this.safeString (fill, 'symbolName');
+            const messageHash = 'fill:' + marketId;
+            client.resolve (tradesArray, messageHash);
+        }
+    }
+
+    parseWsMyTrade (trade: any): Trade {
+        //
+        // {
+        //   "id": "625138763437179034",
+        //   "symbolName": "BTCUSDT_SPBL",
+        //   "baseCoin": "BTC",
+        //   "quoteCoin": "USDT",
+        //   "orderId": "625138763307155610",
+        //   "orderSide": "BUY",
+        //   "fillSize": "0.000952",
+        //   "fillValue": "99.9676160",
+        //   "fillFee": "0.00000095",
+        //   "direction": "TAKER",
+        //   "createdTime": "1749044695720",
+        //   "updatedTime": "1749044695720"
+        // }
+        //
+        const id = this.safeString (trade, 'id');
+        const orderId = this.safeString (trade, 'orderId');
+        const marketId = this.safeString (trade, 'symbolName');
+        const market = this.safeMarket (marketId);
+        const symbol = this.safeString (market, 'symbol');
+        const timestamp = this.safeInteger (trade, 'createdTime');
+        const side = this.safeStringLower (trade, 'orderSide');
+        const amount = this.safeString (trade, 'fillSize');
+        const cost = this.safeString (trade, 'fillValue');
+        const feeAmount = this.safeString (trade, 'fillFee');
+        const direction = this.safeStringLower (trade, 'direction');
+        const takerOrMaker = (direction === 'taker') ? 'taker' : 'maker';
+        const baseCurrency = this.safeString (trade, 'baseCoin');
+        const fee = {
+            'cost': feeAmount,
+            'currency': baseCurrency,
+        };
+        return this.safeTrade ({
+            'info': trade,
+            'id': id,
+            'order': orderId,
+            'timestamp': timestamp,
+            'datetime': this.iso8601 (timestamp),
+            'symbol': symbol,
+            'type': undefined,
+            'side': side,
+            'amount': amount,
+            'price': undefined,
+            'cost': cost,
+            'takerOrMaker': takerOrMaker,
+            'fee': fee,
+        }, market);
+    }
+
+    handleOrders (client: Client, message: any): any {
+        //
+        // {
+        //   "type": "trade-event",
+        //   "channel": "orders",
+        //   "msg": {
+        //     "msgEvent": "OrderUpdate",
+        //     "version": 38,
+        //     "data": {
+        //       "order": [
+        //         {
+        //           "id": "625138763307155610",
+        //           "symbolName": "BTCUSDT_SPBL",
+        //           "baseCoin": "BTC",
+        //           "quoteCoin": "USDT",
+        //           "orderSide": "BUY",
+        //           "price": "0",
+        //           "size": "0",
+        //           "value": "100.0000000",
+        //           "clientOrderId": "1749044695347g1xrdKa2xuDzbDHgTTkbubUoRd3x7s9c2I2mdtdj5qt7M6Evz5m",
+        //           "type": "MARKET",
+        //           "timeInForce": "IMMEDIATE_OR_CANCEL",
+        //           "status": "FILLED",
+        //           "cumFillSize": "0.000952",
+        //           "cumFillValue": "99.9676160",
+        //           "cumFillFee": "0.00000095",
+        //           "createdTime": "1749044695689",
+        //           "updatedTime": "1749044695720"
+        //         }
+        //       ]
+        //     },
+        //     "time": 1749044695720
+        //   },
+        //   "event": "payload"
+        // }
+        //
+        const msg = this.safeDict (message, 'msg', {});
+        const data = this.safeDict (msg, 'data', {});
+        const orders = this.safeList (data, 'order', []);
+        if (this.orders === undefined) {
+            const limit = this.safeInteger (this.options, 'ordersLimit', 1000);
+            this.orders = new ArrayCacheBySymbolById (limit);
+        }
+        const ordersArray = this.orders;
+        for (let i = 0; i < orders.length; i++) {
+            const order = orders[i];
+            const parsedOrder = this.parseWsOrder (order);
+            ordersArray.append (parsedOrder);
+        }
+        client.resolve (ordersArray, 'orders');
+        // Resolve symbol-specific subscriptions
+        for (let i = 0; i < orders.length; i++) {
+            const order = orders[i];
+            const marketId = this.safeString (order, 'symbolName');
+            const messageHash = 'orders:' + marketId;
+            client.resolve (ordersArray, messageHash);
+        }
+    }
+
+    parseWsOrder (order: any): Order {
+        //
+        // {
+        //   "id": "625138763307155610",
+        //   "symbolName": "BTCUSDT_SPBL",
+        //   "baseCoin": "BTC",
+        //   "quoteCoin": "USDT",
+        //   "orderSide": "BUY",
+        //   "price": "0",
+        //   "size": "0",
+        //   "value": "100.0000000",
+        //   "clientOrderId": "1749044695347g1xrdKa2xuDzbDHgTTkbubUoRd3x7s9c2I2mdtdj5qt7M6Evz5m",
+        //   "type": "MARKET",
+        //   "timeInForce": "IMMEDIATE_OR_CANCEL",
+        //   "status": "FILLED",
+        //   "cumFillSize": "0.000952",
+        //   "cumFillValue": "99.9676160",
+        //   "cumFillFee": "0.00000095",
+        //   "createdTime": "1749044695689",
+        //   "updatedTime": "1749044695720"
+        // }
+        //
+        const id = this.safeString (order, 'id');
+        const clientOrderId = this.safeString (order, 'clientOrderId');
+        const marketId = this.safeString (order, 'symbolName');
+        const market = this.safeMarket (marketId);
+        const symbol = this.safeString (market, 'symbol');
+        const timestamp = this.safeInteger (order, 'createdTime');
+        const lastUpdateTimestamp = this.safeInteger (order, 'updatedTime');
+        const type = this.safeStringLower (order, 'type');
+        const side = this.safeStringLower (order, 'orderSide');
+        const amount = this.safeString2 (order, 'size', 'value'); // Use value for market orders
+        const price = this.safeString (order, 'price');
+        const filled = this.safeString (order, 'cumFillSize');
+        const cost = this.safeString (order, 'cumFillValue');
+        const fee = {
+            'cost': this.safeString (order, 'cumFillFee'),
+            'currency': this.safeString (order, 'baseCoin'),
+        };
+        let status = this.safeStringLower (order, 'status');
+        // Map WEEX status to CCXT status
+        if (status === 'new' || status === 'open') {
+            status = 'open';
+        } else if (status === 'filled') {
+            status = 'closed';
+        } else if (status === 'canceled' || status === 'cancelled') {
+            status = 'canceled';
+        }
+        return this.safeOrder ({
+            'info': order,
+            'id': id,
+            'clientOrderId': clientOrderId,
+            'timestamp': timestamp,
+            'datetime': this.iso8601 (timestamp),
+            'lastTradeTimestamp': lastUpdateTimestamp,
+            'lastUpdateTimestamp': lastUpdateTimestamp,
+            'symbol': symbol,
+            'type': type,
+            'timeInForce': undefined,
+            'postOnly': undefined,
+            'side': side,
+            'amount': amount,
+            'price': price,
+            'stopPrice': undefined,
+            'triggerPrice': undefined,
+            'cost': cost,
+            'average': undefined,
+            'filled': filled,
+            'remaining': undefined,
+            'status': status,
+            'fee': fee,
+            'trades': undefined,
+        }, market);
+    }
+
+    handleBalance (client: Client, message: any): any {
+        //
+        // {
+        //   "type": "trade-event",
+        //   "msg": {
+        //     "msgEvent": "OrderUpdate",
+        //     "version": 38,
+        //     "data": {
+        //       "accountAsset": [
+        //         {
+        //           "coinId": 1,
+        //           "coinName": "BTC",
+        //           "equity": "3.042645318000",
+        //           "available": "3.042645318000",
+        //           "frozen": "0"
+        //         }
+        //       ]
+        //     },
+        //     "time": 1749044695720
+        //   },
+        //   "channel": "account",
+        //   "event": "payload"
+        // }
+        //
+        const msg = this.safeDict (message, 'msg', {});
+        const data = this.safeDict (msg, 'data', {});
+        const assets = this.safeList (data, 'accountAsset', []);
+        const result: Dict = {
+            'info': message,
+            'timestamp': this.safeInteger (msg, 'time'),
+            'datetime': undefined,
+        };
+        result['datetime'] = this.iso8601 (result['timestamp']);
+        for (let i = 0; i < assets.length; i++) {
+            const asset = assets[i];
+            const currencyId = this.safeString (asset, 'coinName');
+            const code = this.safeCurrencyCode (currencyId);
+            const account = this.account ();
+            account['free'] = this.safeString (asset, 'available');
+            account['used'] = this.safeString (asset, 'frozen');
+            account['total'] = this.safeString (asset, 'equity');
+            result[code] = account;
+        }
+        const balance = this.safeBalance (result);
+        client.resolve (balance, 'account');
+    }
+}

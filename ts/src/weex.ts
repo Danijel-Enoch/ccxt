@@ -21,7 +21,7 @@ export default class weex extends Exchange {
             'rateLimit': 100,
             'version': 'v2',
             'certified': false,
-            'pro': false,
+            'pro': true,
             'has': {
                 'CORS': undefined,
                 'spot': true,

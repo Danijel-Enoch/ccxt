@@ -184,6 +184,7 @@ var probit$1 = require('./src/pro/probit.js');
 var tradeogre$1 = require('./src/pro/tradeogre.js');
 var upbit$1 = require('./src/pro/upbit.js');
 var vertex$1 = require('./src/pro/vertex.js');
+var weex$1 = require('./src/pro/weex.js');
 var whitebit$1 = require('./src/pro/whitebit.js');
 var woo$1 = require('./src/pro/woo.js');
 var woofipro$1 = require('./src/pro/woofipro.js');
@@ -368,6 +369,7 @@ const pro = {
     'tradeogre': tradeogre$1,
     'upbit': upbit$1,
     'vertex': vertex$1,
+    'weex': weex$1,
     'whitebit': whitebit$1,
     'woo': woo$1,
     'woofipro': woofipro$1,

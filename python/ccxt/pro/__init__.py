@@ -154,6 +154,30 @@ from ccxt.base.errors import error_hierarchy                          # noqa: F4
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from ccxt.pro.alpaca import alpaca                                        # noqa: F401
 from ccxt.pro.apex import apex                                            # noqa: F401
 from ccxt.pro.ascendex import ascendex                                    # noqa: F401
@@ -221,6 +245,7 @@ from ccxt.pro.probit import probit                                        # noqa
 from ccxt.pro.tradeogre import tradeogre                                  # noqa: F401
 from ccxt.pro.upbit import upbit                                          # noqa: F401
 from ccxt.pro.vertex import vertex                                        # noqa: F401
+from ccxt.pro.weex import weex                                            # noqa: F401
 from ccxt.pro.whitebit import whitebit                                    # noqa: F401
 from ccxt.pro.woo import woo                                              # noqa: F401
 from ccxt.pro.woofipro import woofipro                                    # noqa: F401
@@ -294,6 +319,7 @@ exchanges = [
     'tradeogre',
     'upbit',
     'vertex',
+    'weex',
     'whitebit',
     'woo',
     'woofipro',

@@ -33,7 +33,7 @@ class weex(Exchange, ImplicitAPI):
             'rateLimit': 100,
             'version': 'v2',
             'certified': False,
-            'pro': False,
+            'pro': True,
             'has': {
                 'CORS': None,
                 'spot': True,

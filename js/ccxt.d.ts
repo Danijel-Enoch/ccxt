@@ -177,6 +177,7 @@ import probitPro from './src/pro/probit.js';
 import tradeogrePro from './src/pro/tradeogre.js';
 import upbitPro from './src/pro/upbit.js';
 import vertexPro from './src/pro/vertex.js';
+import weexPro from './src/pro/weex.js';
 import whitebitPro from './src/pro/whitebit.js';
 import wooPro from './src/pro/woo.js';
 import woofiproPro from './src/pro/woofipro.js';
@@ -356,6 +357,7 @@ declare const pro: {
     tradeogre: typeof tradeogrePro;
     upbit: typeof upbitPro;
     vertex: typeof vertexPro;
+    weex: typeof weexPro;
     whitebit: typeof whitebitPro;
     woo: typeof wooPro;
     woofipro: typeof woofiproPro;
@@ -434,6 +436,7 @@ declare const ccxt: {
         tradeogre: typeof tradeogrePro;
         upbit: typeof upbitPro;
         vertex: typeof vertexPro;
+        weex: typeof weexPro;
         whitebit: typeof whitebitPro;
         woo: typeof wooPro;
         woofipro: typeof woofiproPro;
