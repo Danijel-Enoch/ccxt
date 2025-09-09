@@ -398,6 +398,10 @@ func DynamicallyCreateInstance(exchangeId string, exchangeArgs map[string]interf
         wavesexchangeItf := &wavesexchange{}
         wavesexchangeItf.Init(exchangeArgs)
         return wavesexchangeItf, true
+    case "weex":
+        weexItf := &weex{}
+        weexItf.Init(exchangeArgs)
+        return weexItf, true
     case "whitebit":
         whitebitItf := &whitebit{}
         whitebitItf.Init(exchangeArgs)
