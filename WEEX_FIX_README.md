@@ -1,4 +1,4 @@
-# WEEX Signature Fix - CCXT v4.4.88-weex-fix
+# WEEX Signature Fix - CCXT v4.4.88
 
 ## Overview
 This fork contains a critical fix for WEEX exchange signature generation in CCXT. The original CCXT library had an issue where private API calls to WEEX would fail with "40009 sign signature error".
@@ -18,7 +18,7 @@ const message = timestamp + method.toUpperCase() + "/api/v2/" + path + queryStri
 
 ## Changes Made
 1. **TypeScript Source**: Fixed signature message construction in `ts/src/weex.ts`
-2. **Version Bump**: Updated to `4.4.88-weex-fix`
+2. **Version Bump**: Updated to `4.4.88`
 3. **Transpiled**: Applied fix to all target languages (Python, PHP, JavaScript)
 4. **Tested**: Verified fix works with real WEEX API calls
 
