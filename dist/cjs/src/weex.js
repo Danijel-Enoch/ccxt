@@ -1270,7 +1270,7 @@ class weex extends weex$1 {
                 }
             }
             const auth = timestamp + method.toUpperCase() + '/' + path;
-            const message = queryString ? auth + queryString + (body || '') : auth + (body || '');
+            const message = auth + queryString + (body || '');
             const signature = this.hmac(this.encode(message), this.encode(this.secret), sha256.sha256, 'base64');
             headers = {
                 'ACCESS-KEY': this.apiKey,

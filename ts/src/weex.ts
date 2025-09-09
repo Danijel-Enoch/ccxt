@@ -1285,7 +1285,7 @@ export default class weex extends Exchange {
                 }
             }
             const auth = timestamp + method.toUpperCase () + '/' + path;
-            const message = queryString ? auth + queryString + (body || '') : auth + (body || '');
+            const message = auth + queryString + (body || '');
             const signature = this.hmac (this.encode (message), this.encode (this.secret), sha256, 'base64');
             headers = {
                 'ACCESS-KEY': this.apiKey,
@@ -1299,7 +1299,7 @@ export default class weex extends Exchange {
         return { 'url': url, 'method': method, 'body': body, 'headers': headers };
     }
 
-handleErrors (httpCode: int, reason: Str, url: Str, method: Str, headers: Dict, body: Str, response: Dict, requestHeaders: Dict, requestBody: Str) {
+    handleErrors (httpCode: int, reason: Str, url: Str, method: Str, headers: Dict, body: Str, response: Dict, requestHeaders: Dict, requestBody: Str) {
         if (response === undefined) {
             return; // fallback to default error handler
         }
