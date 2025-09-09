@@ -1251,8 +1251,7 @@ class weex extends Exchange {
                     $body = $this->json($params);
                 }
             }
-            $auth = $timestamp . strtoupper($method) . '/' . $path;
-            $message = $queryString ? $auth . $queryString . ($body || '') : $auth . ($body || '');
+            $message = $timestamp . strtoupper($method) . $path . $queryString . ($body || '');
             $signature = $this->hmac($this->encode($message), $this->encode($this->secret), 'sha256', 'base64');
             $headers = array(
                 'ACCESS-KEY' => $this->apiKey,

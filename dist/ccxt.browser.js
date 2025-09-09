@@ -376393,8 +376393,7 @@ class weex extends _abstract_weex_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] 
                     body = this.json(params);
                 }
             }
-            const auth = timestamp + method.toUpperCase() + '/' + path;
-            const message = auth + queryString + (body || '');
+            const message = timestamp + method.toUpperCase() + path + queryString + (body || '');
             const signature = this.hmac(this.encode(message), this.encode(this.secret), _static_dependencies_noble_hashes_sha256_js__WEBPACK_IMPORTED_MODULE_3__/* .sha256 */ .s, 'base64');
             headers = {
                 'ACCESS-KEY': this.apiKey,
