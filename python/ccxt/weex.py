@@ -1215,7 +1215,7 @@ class weex(Exchange, ImplicitAPI):
             else:
                 if params:
                     body = self.json(params)
-            message = timestamp + method.upper() + path + queryString + (body or '')
+            message = timestamp + method.upper() + "/api/v2/" + path + queryString + (body or '')
             signature = self.hmac(self.encode(message), self.encode(self.secret), hashlib.sha256, 'base64')
             headers = {
                 'ACCESS-KEY': self.apiKey,
